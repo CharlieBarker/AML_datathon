@@ -9,14 +9,14 @@ library(ggrepel)
 library(org.Hs.eg.db)
 
 # Set working directory
-setwd("~/Desktop/AMLproject/")
+setwd("~/Desktop/AML_datathon//")
 
 # Load data (keep for real analysis or remove subset if needed)
-filename <- "./data/Norm_RNA_counts.rds"
+filename <- "../AMLproject/data/Norm_RNA_counts.rds"
 als_clin <- readRDS(filename)
 
 # Optional: subset to a smaller portion for testing (remove for real analysis)
-als_clin <- als_clin[, 1:10]
+als_clin <- als_clin#[, 1:10]
 
 # Get gene names from ENSEMBL to SYMBOL
 gene_names <- mapIds(org.Hs.eg.db, keys = rownames(als_clin), column = "SYMBOL", keytype = "ENSEMBL")
@@ -44,8 +44,8 @@ sample_acts_pathway <- decoupleR::run_mlm(mat = als_clin_clean,
                                           .mor = 'weight',
                                           minsize = 5)
 
-# Save pathway analysis results
-saveRDS(sample_acts_pathway, file.path(results_dir, "pathway_activities.rds"))
+# # Save pathway analysis results
+saveRDS(sample_acts_pathway, file.path(results_dir, "patient_pathway_activities.rds"))
 
 # Run transcription factor network analysis (ULM)
 sample_acts_tf <- decoupleR::run_ulm(mat = als_clin_clean,
@@ -55,5 +55,5 @@ sample_acts_tf <- decoupleR::run_ulm(mat = als_clin_clean,
                                      .mor = 'mor',
                                      minsize = 5)
 
-# Save transcription factor analysis results
-saveRDS(sample_acts_tf, file.path(results_dir, "tf_activities.rds"))
+# # Save transcription factor analysis results
+saveRDS(sample_acts_tf, file.path(results_dir, "patient_tf_activities.rds"))

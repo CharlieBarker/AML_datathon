@@ -10,7 +10,7 @@ als_clin <- readRDS(filename)
 
 # Filter the dataset to include only the relevant groups (Favorable, Intermediate, Adverse)
 data <- als_clin[als_clin$ELN2017 %in% c("Favorable", "Intermediate", "Adverse"),]
-
+#data<-data[data$NPM1 %in% "positive",]
 # Ensure the relevant columns are in the correct format
 data$overallSurvival <- as.numeric(data$overallSurvival)  # Ensure survival time is numeric
 data$vitalStatus <- ifelse(data$vitalStatus == "Dead", 1, 0)  # Convert "Dead" to 1, "Alive" to 0
@@ -20,16 +20,6 @@ surv_obj <- Surv(data$overallSurvival, data$vitalStatus)
 
 # Fit Kaplan-Meier survival curve overall
 km_fit <- survfit(surv_obj ~ 1)
-
-# Plot the Kaplan-Meier survival curve with confidence intervals
-ggsurvplot(km_fit,
-           data = data,          # Specify the data here
-           xlab = "Time (Months)",
-           ylab = "Survival Probability",
-           title = "Kaplan-Meier Survival Curve (Overall)",
-           conf.int = TRUE,      # Show confidence intervals
-           risk.table = TRUE,    # Display risk table at the bottom
-           pval = TRUE)          # Display p-value for log-rank test
 
 # Kaplan-Meier curve stratified by ELN 2017 risk group
 km_fit_stratified <- survfit(surv_obj ~ data$ELN2017)
@@ -43,9 +33,7 @@ ggsurvplot(km_fit_stratified,
            conf.int = TRUE,      # Show confidence intervals
            risk.table = TRUE,    # Show the risk table with number at risk
            pval = TRUE,          # Display p-value for log-rank test
-           legend.title = "ELN 2017 Classification",
-           legend.labs = unique(data$ELN2017),  # Add labels for the legend
-           palette = c("blue", "green", "red"))  # Explicitly set colors using palette
+           legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
 
 
 
