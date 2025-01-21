@@ -1,6 +1,15 @@
 # Get the selected features from RFE
-selected_features <- predictors(model_rfe)[1:30]
+# Extract feature importance from Random Forest model
+feature_importance <- data.frame(varImp(model_rfe))
+# Add a ranking column
+feature_importance$Rank <- rank(-feature_importance$Overall)  # Higher rank for more important features
+# Convert rownames to a column for plotting
+feature_importance <- feature_importance %>%
+  rownames_to_column(var = "Feature") %>%
+  arrange(desc(Overall))  # Arrange by importance
 
+feature_importance$Feature <- gsub("`", "", feature_importance$Feature)
+selected_features <- feature_importance$Feature[1:30]
 # Reduce the train and test datasets to include only selected features and target
 train_data_reduced <- train_data[, c(selected_features, "ELN2017")]
 test_data_reduced <- test_data[, c(selected_features, "ELN2017")]
@@ -52,14 +61,6 @@ for (model in names(models)) {
 library(ggplot2)
 pdf(file = "~/Desktop/roc_curves.pdf")
 
-# Extract feature importance from Random Forest model
-feature_importance <- data.frame(varImp(model_rfe))
-# Add a ranking column
-feature_importance$Rank <- rank(-feature_importance$Overall)  # Higher rank for more important features
-# Convert rownames to a column for plotting
-feature_importance <- feature_importance %>%
-  rownames_to_column(var = "Feature") %>%
-  arrange(desc(Overall))  # Arrange by importance
 ggplot(feature_importance[feature_importance$Feature %in% selected_features,], aes(x = reorder(Feature, -Overall), y = Overall)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_point(color = "red", size = 3) +
