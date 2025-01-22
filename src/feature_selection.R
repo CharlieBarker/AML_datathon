@@ -62,6 +62,8 @@ for (feature_t in feature_types) {
   signature_clean <- signature_info %>%
     filter(feature_type == feature_t) %>%   # Filter by feature_t
     dplyr::select(-statistic, -p_value, -feature_type)
+  signature_wide <- signature_clean %>%
+    pivot_wider(names_from = condition, values_from = score)  # Spread by condition to create features
   # 2. Transpose the signature_wide data, remove the 'source' column and set 'source' as column names in one step
   signature_transposed <- signature_wide %>%
     dplyr::select(-source) %>%            # Remove the 'source' column
