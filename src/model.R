@@ -1,3 +1,20 @@
+# Load necessary libraries
+library(dplyr)
+library(caret)
+library(pROC)
+library(tidyverse)
+
+# Load saved data from feature selection
+train_data <- readRDS("~/Desktop/AML_datathon/results/train_data.rds")
+test_data <- readRDS("~/Desktop/AML_datathon/results/test_data.rds")
+merged_data_columns <- readRDS("~/Desktop/AML_datathon/results/feature_names.rds")
+
+cols<-c("CEBPA_Biallelic","consensusAMLFusions","ageAtDiagnosis","specificDxAtAcquisition","ELN2017",
+        "ageAtSpecimenAcquisition", "%.Basophils.in.PB","%.Blasts.in.BM","%.Blasts.in.PB","%.Eosinophils.in.PB",
+        "%.Immature.Granulocytes.in.PB","%.Lymphocytes.in.PB","%.Monocytes.in.PB","%.Neutrophils.in.PB",
+        "%.Nucleated.RBCs.in.PB","ALT","AST","albumin","creatinine","fabBlastMorphology","hematocrit",
+        "hemoglobin", "otherCytogenetics","plateletCount", "totalProtein","wbcCount","FLT3-ITD",
+        "allelic_ratio","NPM1","RUNX1","ASXL1","TP53")
 # Get the selected features from RFE
 # Extract feature importance from Random Forest model
 feature_importance <- data.frame(varImp(model_rfe))

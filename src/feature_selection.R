@@ -89,3 +89,11 @@ confusionMatrix(pred_rfe$pred, test_data$ELN2017)
 
 
 
+
+# Save all necessary data for model
+saveRDS(train_data, file = "~/Desktop/AML_datathon/results/train_data.rds")
+saveRDS(test_data, file = "~/Desktop/AML_datathon/results/test_data.rds")
+# Save the column names for feature names reference
+saveRDS(colnames(merged_data), file = "~/Desktop/AML_datathon/results/feature_names.rds")
+
+
