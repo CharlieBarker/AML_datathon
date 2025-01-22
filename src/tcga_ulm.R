@@ -8,15 +8,15 @@ library(pheatmap)
 library(ggrepel)
 
 # Set working directory
-setwd("/SAN/colcc/datathon25/teams/team8/AML/git-scripts")
+setwd("~/Desktop/AML_datathon//")
 
 # Load data (keep for real analysis or remove subset if needed)
-filename <- "../../TCGA_AML_cbioportal/laml_tcga_pub/data_mrna_seq_v2_rsem_zscores_ref_all_samples.txt"
+filename <- "../AMLproject/TCGA/data_mrna_seq_v2_rsem_zscores_ref_all_samples.txt"
 als_clin <- read.delim(filename)
 als_clin<-als_clin[als_clin$Hugo_Symbol != "",]
 als_clin$Entrez_Gene_Id <- NULL
 # Optional: subset to a smaller portion for testing (remove for real analysis)
-als_clin <- als_clin[, 1:10]
+als_clin <- als_clin
 rownames(als_clin) <- make.unique(als_clin$Hugo_Symbol)
 als_clin$Hugo_Symbol <- NULL
 als_clin<-als_clin[complete.cases(als_clin),]
