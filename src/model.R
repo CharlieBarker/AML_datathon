@@ -64,7 +64,7 @@ library(pROC)
 
 for (model in names(models)) {
   # Get predicted probabilities for the "Dead" class
-  test_probs <- predict(models[[model]], newdata = test_data_reduced, type = "prob")[, "Dead"]
+  test_probs <- predict(models[[model]], newdata = test_data_reduced, type = "prob")[, "Adverse"]
 
   # Calculate AUC
   roc_obj <- roc(test_data_reduced$ELN2017, test_probs, levels = rev(levels(test_data_reduced$ELN2017)))

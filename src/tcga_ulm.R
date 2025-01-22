@@ -6,7 +6,6 @@ library(tidyr)
 library(ggplot2)
 library(pheatmap)
 library(ggrepel)
-library(org.Hs.eg.db)
 
 # Set working directory
 setwd("~/Desktop/AML_datathon//")
