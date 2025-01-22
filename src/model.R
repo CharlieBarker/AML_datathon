@@ -3,18 +3,15 @@ library(dplyr)
 library(caret)
 library(pROC)
 library(tidyverse)
+library(wesanderson)
 
 # Load saved data from feature selection
-train_data <- readRDS("~/Desktop/AML_datathon/results/train_data.rds")
-test_data <- readRDS("~/Desktop/AML_datathon/results/test_data.rds")
-merged_data_columns <- readRDS("~/Desktop/AML_datathon/results/feature_names.rds")
+train_data <- readRDS("~/Desktop/AML_datathon/training/transcriptional-signatures/train_data.rds")
+test_data <- readRDS("~/Desktop/AML_datathon/training/transcriptional-signatures/test_data.rds")
+merged_data_columns <- readRDS("~/Desktop/AML_datathon/training/transcriptional-signatures/feature_names.rds")
+model_rfe <- readRDS("~/Desktop/AML_datathon/training/transcriptional-signatures/model_rfe.rds")
 
-cols<-c("CEBPA_Biallelic","consensusAMLFusions","ageAtDiagnosis","specificDxAtAcquisition","ELN2017",
-        "ageAtSpecimenAcquisition", "%.Basophils.in.PB","%.Blasts.in.BM","%.Blasts.in.PB","%.Eosinophils.in.PB",
-        "%.Immature.Granulocytes.in.PB","%.Lymphocytes.in.PB","%.Monocytes.in.PB","%.Neutrophils.in.PB",
-        "%.Nucleated.RBCs.in.PB","ALT","AST","albumin","creatinine","fabBlastMorphology","hematocrit",
-        "hemoglobin", "otherCytogenetics","plateletCount", "totalProtein","wbcCount","FLT3-ITD",
-        "allelic_ratio","NPM1","RUNX1","ASXL1","TP53")
+
 # Get the selected features from RFE
 # Extract feature importance from Random Forest model
 feature_importance <- data.frame(varImp(model_rfe))
@@ -32,7 +29,10 @@ train_data_reduced <- train_data[, c(selected_features, "ELN2017")]
 test_data_reduced <- test_data[, c(selected_features, "ELN2017")]
 
 # Define a list of models to train
-model_list <- c("rf", "glm", "svmRadial")
+model_list <- c("gbm", "svmRadial",
+                "glm", "rf",
+                "lda", "glmnet",
+                "knn", "xgbTree")
 
 # Set up trainControl for consistent cross-validation
 train_control <- trainControl(
@@ -49,6 +49,7 @@ roc_curves <- list()
 # Train models using the selected features
 for (model in model_list) {
   set.seed(123)  # For reproducibility
+  cat(model, "\n")
   models[[model]] <- train(
     ELN2017 ~ .,
     data = train_data_reduced,
@@ -78,17 +79,29 @@ for (model in names(models)) {
 library(ggplot2)
 pdf(file = "~/Desktop/roc_curves.pdf")
 
+# Initialize a list to store ROC values for each model
+roc_values <- list()
+# Loop through each model and extract the ROC value
+for (model in names(models)) {
+  # Extract ROC value for the current model
+  roc_values[[model]] <- models[[model]]$results$ROC
+}
+roc_df <- stack(roc_values)
+ggplot(roc_df, aes(x = reorder(ind, -values, FUN = median), y = values)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "ROC (AUC) Values for Different Models", x = "Model", y = "ROC (AUC)") +
+  cowplot::theme_cowplot()
+
 ggplot(feature_importance[feature_importance$Feature %in% selected_features,], aes(x = reorder(Feature, -Overall), y = Overall)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_point(color = "red", size = 3) +
-  theme_minimal() +
+  cowplot::theme_cowplot() +
   labs(
     title = "Feature Informativeness vs Contribution to Classifier",
     x = "Feature (Ranked by Importance)",
     y = "Feature Importance Score"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 
 # Plot the first ROC curve (Random Forest)
 plot(
@@ -99,9 +112,8 @@ plot(
   xlab = "False Positive Rate (1 - Specificity)",
   ylab = "True Positive Rate (Sensitivity)"
 )
-
 # Add additional ROC curves
-model_colors <- c("blue", "red", "green", "purple")  # Predefined colors for consistency
+model_colors <- ghibli_palettes$MarnieLight1
 model_index <- 1
 
 for (model in names(roc_curves)[-1]) {
@@ -124,8 +136,6 @@ legend(
   col = model_colors[1:length(roc_curves)],  # Use the corresponding colors
   lwd = 2                            # Line width
 )
-
-
 dev.off()
 
 
