@@ -9,6 +9,9 @@ library(survminer)
 library(randomForestSRC)
 setwd("~/Desktop/AML_datathon//")
 
+set.seed(123)  # Set seed for reproducibility
+
+
 #load data
 
 #clinical-readings
@@ -62,7 +65,7 @@ feature_types<-unique(signature_info$feature_type)
 signature_clean <- signature_info %>%
   dplyr::select(-statistic, -p_value, -feature_type)
 signature_wide <- signature_clean %>%
-    pivot_wider(names_from = condition, values_from = score)  # Spread by condition to create features
+  pivot_wider(names_from = condition, values_from = score)  # Spread by condition to create features
 # 2. Transpose the signature_wide data, remove the 'source' column and set 'source' as column names in one step
 signature_transposed <- signature_wide %>%
   dplyr::select(-source) %>%            # Remove the 'source' column
@@ -87,7 +90,6 @@ merged_data$TimeSurv<-as.numeric(as.character(merged_data$TimeSurv))
 sample_IDs<-merged_data$RNAseqID
 merged_data$RNAseqID <- NULL
 
-set.seed(123)  # Set seed for reproducibility
 trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.8, list = FALSE)
 train_data <- merged_data[trainIndex,]
 test_data <- merged_data[-trainIndex,]
@@ -97,13 +99,13 @@ library(mltools)
 library(MLmetrics)
 # Define the grid of hyperparameters to search over
 tune_grid <- expand.grid(
-    ntree = c(20,50,100,500,1000),
-    mtry = c(3,5,10,20),
-    nodesize = c(3,5,10,20)
-  )
+  ntree = c(20,50,100,500,1000),
+  mtry = c(3,5,10,20),
+  nodesize = c(3,5,10,20)
+)
 tune_model <- function(ntree, mtry, nodesize) {
-    rfsrc(Surv(TimeSurv,vitalStatus) ~ ., data = train_data, ntree = ntree, mtry = mtry, nodesize = nodesize,importance=TRUE)
-  }
+  rfsrc(Surv(TimeSurv,vitalStatus) ~ ., data = train_data, ntree = ntree, mtry = mtry, nodesize = nodesize,importance=TRUE)
+}
 
 # Install pbapply if not already installed
 if (!requireNamespace("pbapply", quietly = TRUE)) {
@@ -141,14 +143,19 @@ o <- rfsrc(Surv(TimeSurv,vitalStatus) ~ ., data = train_data, ntree = nt, mtry =
 
 data_to_plot <- merged_data
 # Predict on the test_data using the fitted model
+
 predictions <- predict(o, newdata = data_to_plot, proximity = T)
-# Terminal node membership matrix
-membership_matrix <- predictions$proximity
+# Step 1: Convert proximity matrix to dissimilarity matrix
+dissimilarity_matrix <- as.dist(1 - predictions$proximity)
+
+# Step 2: Dimensionality reduction using Multidimensional Scaling (MDS)
+library(MASS)
+mds <- cmdscale(dissimilarity_matrix, k = 3) # Reduce to 2 dimensions
 
 # Step 1: Determine the optimal number of clusters using an Elbow Plot
 wss <- numeric(10) # Within-cluster sum of squares
 for (k in 1:10) {
-  kmeans_result <- kmeans(membership_matrix, centers = k, nstart = 10)
+  kmeans_result <- kmeans(mds, centers = k, nstart = 10)
   wss[k] <- kmeans_result$tot.withinss # Total within-cluster sum of squares
 }
 
@@ -159,7 +166,7 @@ plot(1:10, wss, type = "b", pch = 19, col = "blue",
 
 # Step 3: Perform K-means clustering with the optimal number of clusters
 optimal_k <- 4 # Choose based on the elbow plot
-final_kmeans <- kmeans(membership_matrix, centers = optimal_k, nstart = 10)
+final_kmeans <- kmeans(mds, centers = optimal_k, nstart = 10)
 
 # Step 4: Add cluster labels to the data
 cluster_labels <- final_kmeans$cluster
@@ -180,26 +187,26 @@ surv_obj <- Surv(train_data_plot$overallSurvival, train_data_plot$vitalStatus)
 km_fit <- survfit(surv_obj ~ train_data_plot$kmeans_cluster)
 # Plot the stratified Kaplan-Meier curve with confidence intervals and risk table
 plot1<-ggsurvplot(km_fit,
-           data = train_data_plot,         # Correctly pass the data to ggsurvplot
-           xlab = "Time (Months)",
-           ylab = "Survival Probability",
-           title = "KM Survival Curve by RFsrc",
-           conf.int = TRUE,      # Show confidence intervals
-           risk.table = TRUE,    # Show the risk table with number at risk
-           pval = TRUE,          # Display p-value for log-rank test
-           legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
+                  data = train_data_plot,         # Correctly pass the data to ggsurvplot
+                  xlab = "Time (Months)",
+                  ylab = "Survival Probability",
+                  title = "KM Survival Curve by RFsrc",
+                  conf.int = TRUE,      # Show confidence intervals
+                  risk.table = TRUE,    # Show the risk table with number at risk
+                  pval = TRUE,          # Display p-value for log-rank test
+                  legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
 # Fit Kaplan-Meier survival curve overall
 km_fit <- survfit(surv_obj ~ train_data_plot$ELN2017)
 # Plot the stratified Kaplan-Meier curve with confidence intervals and risk table
 plot2<-ggsurvplot(km_fit,
-           data = train_data_plot,         # Correctly pass the data to ggsurvplot
-           xlab = "Time (Months)",
-           ylab = "Survival Probability",
-           title = "KM Survival Curve by ELN2017",
-           conf.int = TRUE,      # Show confidence intervals
-           risk.table = TRUE,    # Show the risk table with number at risk
-           pval = TRUE,          # Display p-value for log-rank test
-           legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
+                  data = train_data_plot,         # Correctly pass the data to ggsurvplot
+                  xlab = "Time (Months)",
+                  ylab = "Survival Probability",
+                  title = "KM Survival Curve by ELN2017",
+                  conf.int = TRUE,      # Show confidence intervals
+                  risk.table = TRUE,    # Show the risk table with number at risk
+                  pval = TRUE,          # Display p-value for log-rank test
+                  legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
 
 
 
@@ -210,6 +217,3 @@ print(plot2)
 dev.off()
 
 table(data.frame(eln=train_data_plot$ELN2017, kmeans_proximity=train_data_plot$kmeans_cluster))
-
-
-
