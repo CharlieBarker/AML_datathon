@@ -13,9 +13,10 @@ set.seed(123)  # Set seed for reproducibility
 
 
 #load data
+load(file = "~/Downloads/prelim_rfsrc.RData")
 
 #clinical-readings
-als_clin <- readRDS("/Users/lourdes/Documents/Postdoc_2023_Enver_lab/CRUK_AML/Data/Clin_RNA.rds")
+als_clin <- readRDS("../AMLproject/data//Clin_RNA.rds")
 cols<-c("CEBPA_Biallelic","consensusAMLFusions","ageAtDiagnosis","specificDxAtAcquisition","ELN2017",
         "ageAtSpecimenAcquisition", "%.Basophils.in.PB","%.Blasts.in.BM","%.Blasts.in.PB","%.Eosinophils.in.PB",
         "%.Immature.Granulocytes.in.PB","%.Lymphocytes.in.PB","%.Monocytes.in.PB","%.Neutrophils.in.PB",
@@ -26,7 +27,7 @@ cols<-c("CEBPA_Biallelic","consensusAMLFusions","ageAtDiagnosis","specificDxAtAc
 #transcriptional-signatures
 sample_acts_pathway<-readRDS("./results/patient_pathway_activities.rds")
 sample_acts_tf<-readRDS("./results/patient_tf_activities.rds")
-switch_scores <- read.delim("./features/AML_danaher_plus_class_switch_scores.tsv")
+switch_scores <- read.delim("./features/AML_galan_single_cell_scores.tsv")
 molten_switch_scores<-reshape2::melt(switch_scores)
 transcriptional_signature_names<-unique(molten_switch_scores$variable)
 
@@ -93,6 +94,8 @@ merged_data$RNAseqID <- NULL
 trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.8, list = FALSE)
 train_data <- merged_data[trainIndex,]
 test_data <- merged_data[-trainIndex,]
+trainSampleIDs<-sample_IDs[-trainIndex]
+
 # optimise parameters
 library(caret)  # For grid search
 library(mltools)
@@ -113,35 +116,35 @@ if (!requireNamespace("pbapply", quietly = TRUE)) {
 }
 
 library(pbapply)
-
-# Add progress bar to the lapply loop
-results <- pblapply(1:nrow(tune_grid), function(i) {
-  params <- tune_grid[i, ]
-  model <- tune_model(params$ntree, params$mtry, params$nodesize)
-  mean(model$err.block.rate[1])  # Collect average error rate
-})
-# Cross-validate over the parameter grid
-# results <- lapply(1:nrow(tune_grid), function(i) {
-#     params <- tune_grid[i, ]
-#     model <- tune_model(params$ntree, params$mtry, params$nodesize)
-#     mean(model$err.block.rate[1])  # Collect average error rate
-#   })
-
-# Select best parameter combination based on minimum error
-best_params <- tune_grid[which.min(unlist(results)), ]
-print(best_params)
-nt<-as.numeric(best_params[1])
-mt<-as.numeric(best_params[2])
-ns<-as.numeric(best_params[3])
-
-load(file = "~/Downloads/prelim_rfsrc.RData")
+#
+# # Add progress bar to the lapply loop
+# results <- pblapply(1:nrow(tune_grid), function(i) {
+#   params <- tune_grid[i, ]
+#   model <- tune_model(params$ntree, params$mtry, params$nodesize)
+#   mean(model$err.block.rate[1])  # Collect average error rate
+# })
+# # Cross-validate over the parameter grid
+# # results <- lapply(1:nrow(tune_grid), function(i) {
+# #     params <- tune_grid[i, ]
+# #     model <- tune_model(params$ntree, params$mtry, params$nodesize)
+# #     mean(model$err.block.rate[1])  # Collect average error rate
+# #   })
+#
+# # Select best parameter combination based on minimum error
+# best_params <- tune_grid[which.min(unlist(results)), ]
+# print(best_params)
+# nt<-as.numeric(best_params[1])
+# mt<-as.numeric(best_params[2])
+# ns<-as.numeric(best_params[3])
 
 
+
+set.seed(123)  # Set seed for reproducibility
 
 o <- rfsrc(Surv(TimeSurv,vitalStatus) ~ ., data = train_data, ntree = nt, mtry = mt, nodesize =  ns,
            importance=TRUE, proximity = T, statistics=TRUE, membership = T)
 
-data_to_plot <- merged_data
+data_to_plot <- test_data
 # Predict on the test_data using the fitted model
 
 predictions <- predict(o, newdata = data_to_plot, proximity = T)
@@ -172,9 +175,9 @@ final_kmeans <- kmeans(mds, centers = optimal_k, nstart = 10)
 cluster_labels <- final_kmeans$cluster
 data_to_plot$kmeans_cluster <- cluster_labels
 
-to_write<-data_to_plot
-write.csv(x = data.frame(Proximity_Cluster = to_write$kmeans_cluster,
-                         SampleID=sample_IDs), file = "./results/Proximity_Clusters.csv")
+# to_write<-data_to_plot
+# write.csv(x = data.frame(Proximity_Cluster = to_write$kmeans_cluster,
+#                          SampleID=sample_IDs), file = "./results/Proximity_Clusters.csv")
 
 # Ensure the relevant columns are in the correct format
 train_data_plot<-data_to_plot[data_to_plot$ELN2017 %in% c("Adverse", "Favorable", "Intermediate"),]
@@ -188,30 +191,28 @@ km_fit <- survfit(surv_obj ~ train_data_plot$kmeans_cluster)
 # Plot the stratified Kaplan-Meier curve with confidence intervals and risk table
 plot1<-ggsurvplot(km_fit,
                   data = train_data_plot,         # Correctly pass the data to ggsurvplot
-                  xlab = "Time (Months)",
+                  xlab = "Time (Days)",
                   ylab = "Survival Probability",
                   title = "KM Survival Curve by RFsrc",
-                  conf.int = TRUE,      # Show confidence intervals
+                  conf.int = F,      # Show confidence intervals
                   risk.table = TRUE,    # Show the risk table with number at risk
-                  pval = TRUE,          # Display p-value for log-rank test
-                  legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
+                  pval = TRUE)  # Explicitly set colors using palette
 # Fit Kaplan-Meier survival curve overall
 km_fit <- survfit(surv_obj ~ train_data_plot$ELN2017)
 # Plot the stratified Kaplan-Meier curve with confidence intervals and risk table
 plot2<-ggsurvplot(km_fit,
                   data = train_data_plot,         # Correctly pass the data to ggsurvplot
-                  xlab = "Time (Months)",
+                  xlab = "Time (Days)",
                   ylab = "Survival Probability",
                   title = "KM Survival Curve by ELN2017",
-                  conf.int = TRUE,      # Show confidence intervals
+                  conf.int = F,      # Show confidence intervals
                   risk.table = TRUE,    # Show the risk table with number at risk
-                  pval = TRUE,          # Display p-value for log-rank test
-                  legend.title = "ELN 2017 Classification")  # Explicitly set colors using palette
+                  pval = TRUE)  # Explicitly set colors using palette
 
 
 
 # Combine plots into a single PDF
-pdf(file = "~/Desktop/KM_Survival_Plots.pdf", width = 8, height = 10)
+pdf(file = "~/Desktop/KM_Survival_Plots_new.pdf", width = 8, height = 10)
 print(plot1)
 print(plot2)
 dev.off()
