@@ -2,6 +2,7 @@
 library(ggplot2)
 library(rstatix)
 library(ggpubr)
+library(ggpubr)
 setwd("~/Desktop/AML_datathon//")
 
 drug_Response<-read.csv("~/Downloads/AUC_Drug_response.csv")
@@ -95,7 +96,7 @@ significance_matrix <- apply(adjusted_pval_matrix, c(1, 2), function(p) {
 })
 
 library(ComplexHeatmap)
-pdf("~/Desktop/test.pdf", width = 12, height = 8)
+pdf("~/Desktop/test.pdf")
 Heatmap(
   coeff_matrix,  # Transpose so rows are drugs, columns are groups
   name = "Coefficients",  # Legend title
@@ -124,23 +125,25 @@ library(ggplot2)
 
 # Subset data for Panobinostat
 Panobinostat <- filtered_drug_Response[filtered_drug_Response$inhibitor %in% "Palbociclib",]
-
+cluster_colors <- c("1" = "red", "2" = "darkgreen", "3" = "skyblue", "4" = "purple")
 # Create the plot
 p <- ggplot(Panobinostat, aes(x = Proximity_Cluster, y = auc, fill = Proximity_Cluster)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.7, color = "black") + # Boxplot with no outliers shown
-  geom_jitter(shape = 16, position = position_jitter(0.2), size = 2, color = "darkblue") + # Jittered points
+  geom_jitter(shape = 16, position = position_jitter(0.2), size = 2, color = "black", alpha = 0.6) + # Jittered points
   cowplot::theme_cowplot() + # Minimal theme for a clean look
-  scale_fill_brewer(palette = "Set3") + # Set3 palette for vibrant colors
+  scale_fill_manual(values = cluster_colors) + # Custom colors
   labs(title = "Palbociclib Response by Proximity Cluster",
        x = "Proximity Cluster",
        y = "AUC",
        fill = "Cluster") + # Labels for axes and legend
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 16), # Center and style title
-    axis.text = element_text(size = 12),
-    axis.title = element_text(size = 14),
-    legend.position = "top"
-  )
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 20), # Center and style title
+    axis.text = element_text(size = 20),
+    axis.title = element_text(size = 20),
+    legend.position = "none"
+  )+
+  grids(linetype = "dashed")
+
 
 # Save the plot as a PDF
 print(p)
