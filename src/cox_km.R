@@ -17,7 +17,7 @@ data<-merge(x = Proximity_Clusters, y = data,
 # Ensure the relevant columns are in the correct format
 data$overallSurvival <- as.numeric(data$overallSurvival)  # Ensure survival time is numeric
 data$vitalStatus <- ifelse(data$vitalStatus == "Dead", 1, 0)  # Convert "Dead" to 1, "Alive" to 0
-data<-data[data$SampleID %in% trainSampleIDs,]
+data<-data[data$SampleID %in% test_SampleIDs,]
 # Create a Surv object for survival time and event status
 surv_obj <- Surv(data$overallSurvival, data$vitalStatus)
 
@@ -38,10 +38,10 @@ p1 <- ggsurvplot(km_fit_cluster,
                  xlab = "Time (Days)",
                  ylab = "Survival Probability",
                  title = "Proximity Cluster",
-                 conf.int = F,
+                 conf.int = T,
                  risk.table = F,
                  pval = TRUE,
-                 legend.title = "")
+                 legend.title = "",ggtheme = cowplot::theme_cowplot())
 
 # Kaplan-Meier fit stratified by ELN2017
 km_fit_eln <- survfit(surv_obj ~ data$ELN2017)
@@ -50,10 +50,10 @@ p2 <- ggsurvplot(km_fit_eln,
                  xlab = "Time (Days)",
                  ylab = "Survival Probability",
                  title = "ELN 2017",
-                 conf.int = F,
+                 conf.int = T,
                  risk.table = F,
                  pval = TRUE,
-                 legend.title = "")
+                 legend.title = "",ggtheme = cowplot::theme_cowplot())
 
 # Combine the two plots side by side using cowplot
 combined_plot <- plot_grid(p1$plot, p2$plot, ncol = 2, labels = c("A", "B"))

@@ -94,7 +94,8 @@ merged_data$RNAseqID <- NULL
 trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.8, list = FALSE)
 train_data <- merged_data[trainIndex,]
 test_data <- merged_data[-trainIndex,]
-trainSampleIDs<-sample_IDs[-trainIndex]
+test_SampleIDs<-sample_IDs[-trainIndex]
+trainSampleIDs<-sample_IDs[trainIndex]
 
 # optimise parameters
 library(caret)  # For grid search
