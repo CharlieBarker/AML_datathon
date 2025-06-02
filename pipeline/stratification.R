@@ -6,10 +6,10 @@ library(pbapply)
 library(randomForestSRC)
 library(dplyr)
 
-setwd("~/Desktop/CRUK_AML_PAPER")
-load(file = "./features.RData")
-load(file = "./features_data.RData")
-load(file = "./partition.RData")
+setwd("~/Desktop/AML_datathon/")
+load(file = "./results/feature_results/features.RData")
+load(file = "./results/feature_results/features_data.RData")
+load(file = "./results/feature_results/partition.RData")
 
 set.seed(123)  # Set seed for reproducibility
 
@@ -78,10 +78,6 @@ nt<-as.numeric(best_params[1])
 mt<-as.numeric(best_params[2])
 ns<-as.numeric(best_params[3])
 
-
-
-
-
 o <- rfsrc(Surv(TimeSurv,vitalStatus) ~ ., data = train_selected_features, ntree = nt, mtry = mt, nodesize =  ns,
            importance=TRUE, proximity = T, statistics=TRUE, membership = T)
 
@@ -109,8 +105,6 @@ for (k in 1:10) {
 plot(1:10, wss, type = "b", pch = 19, col = "blue",
      xlab = "Number of Clusters (k)", ylab = "Total Within-Cluster Sum of Squares",
      main = "Elbow Plot for Optimal Clusters")
-
-
 
 # Step 3: Perform K-means clustering with the optimal number of clusters
 optimal_k <- 4 # Choose based on the elbow plot
@@ -140,6 +134,7 @@ data_to_plot$kmeans_cluster_ordered <- cluster_map[as.character(data_to_plot$kme
 test_proximity_clusters<-data_to_plot$kmeans_cluster_ordered[-trainIndex]
 
 data_to_plot$ELN2017 <- sample_ELNs
-write.csv(x = data_to_plot, file = './Results/full_patient_info.csv')
-save(o, file = "./model.RData")
+
+write.csv(x = data_to_plot, file = './results/stratification/full_patient_info.csv')
+save(o, file = "./results/model.RData")
 

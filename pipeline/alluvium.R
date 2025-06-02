@@ -10,13 +10,12 @@ library(survival)
 library(survminer)
 library(dplyr)
 
-setwd("~/Desktop/CRUK_AML_PAPER")
-load(file = "./features.RData")
-load(file = "./features_data.RData")
-load(file = "./partition.RData")
-load(file = "./model.RData")
-
-data_to_plot <- read.csv('./Results/full_patient_info.csv')
+setwd("~/Desktop/AML_datathon/")
+load(file = "./results/feature_results/features.RData")
+load(file = "./results/feature_results/features_data.RData")
+load(file = "./results/feature_results/partition.RData")
+load(file = "./results/model.RData")
+data_to_plot <- read.csv('./results/stratification/full_patient_info.csv')
 
 # Check if trainIndex exists
 if (exists("trainIndex")) {

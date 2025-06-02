@@ -6,16 +6,27 @@ library(pROC)
 library(tidyverse)
 library(survival)
 library(randomForestSRC)
-setwd("~/Desktop/CRUK_AML_PAPER")
+setwd("~/Desktop/AML_datathon/")
 set.seed(123)  # Set seed for reproducibility
 
 
-#load data
-load(file = "Data/prelim_rfsrc.RData")
+#####load data#####
+
+
+load(file = "data/prelim_rfsrc.RData")
 
 #clinical-readings
-als_clin <- readRDS("Data/Clin_RNA.rds")
-clin.data<-readxl::read_excel("Data/beataml_wv1to4_clinical.xlsx")
+als_clin <- readRDS("data/Clin_RNA.rds")
+clin.data<-readxl::read_excel("data/beataml_wv1to4_clinical.xlsx")
+#transcriptional-signatures
+sample_acts_pathway<-readRDS("results/patient_pathway_activities.rds")
+sample_acts_tf<-readRDS("results/patient_tf_activities.rds")
+#mutations
+mutation_matrix <- readRDS("data/beatAML2_gene_mutation_matrix_subset.RDS")
+#Cibersort
+cibersort_matrix<-read.delim("results/CIBERSORTx_BeatAML.txt")
+#Karyotype
+karyo<-read.delim("data/beataml_ELN2022_karyotype_renamed.tsv",row.names = "ELN2022_feature")
 cols<-c("CEBPA_Biallelic","consensusAMLFusions","ageAtDiagnosis","specificDxAtAcquisition","ELN2017",
         "ageAtSpecimenAcquisition", "%.Basophils.in.PB","%.Blasts.in.BM","%.Blasts.in.PB","%.Eosinophils.in.PB",
         "%.Immature.Granulocytes.in.PB","%.Lymphocytes.in.PB","%.Monocytes.in.PB","%.Neutrophils.in.PB",
@@ -23,9 +34,8 @@ cols<-c("CEBPA_Biallelic","consensusAMLFusions","ageAtDiagnosis","specificDxAtAc
         "hemoglobin", "otherCytogenetics","plateletCount", "totalProtein","wbcCount","FLT3-ITD",
         "allelic_ratio","NPM1","RUNX1","ASXL1","TP53")
 
-#transcriptional-signatures
-sample_acts_pathway<-readRDS("~/Desktop//CRUK_AML_PAPER/Results/patient_pathway_activities.rds")
-sample_acts_tf<-readRDS("~/Desktop//CRUK_AML_PAPER/Results/patient_tf_activities.rds")
+
+#####process#####
 
 transcriptional_signature_names<-unique(molten_switch_scores$variable)
 
@@ -35,7 +45,6 @@ sample_pathway_molten$sample_id<-rownames(sample_pathway_molten)
 sample_pathway_molten <- reshape2::melt(sample_pathway_molten, id.vars = "sample_id")
 
 #mutations
-mutation_matrix <- readRDS("Data/beatAML2_gene_mutation_matrix_subset.RDS")
 mutation_matrix_df <- data.frame(sample_id = rownames(mutation_matrix), mutation_matrix)
 molten_mutation_matrix <- reshape2::melt(mutation_matrix_df, id.vars = "sample_id")
 molten_mutation_matrix$rna_id <- als_clin$dbgap_rnaseq_sample[match(molten_mutation_matrix$sample_id, als_clin$dbgap_dnaseq_sample)]
@@ -43,14 +52,12 @@ molten_mutation_matrix$variable<-paste0(molten_mutation_matrix$variable, ";mut")
 molten_mutation_matrix<-molten_mutation_matrix[!is.na(molten_mutation_matrix$rna_id),]
 
 #Cibersort results
-cibersort_matrix<-read.delim("Results/CIBERSORTx_BeatAML.txt")
 cibersort_matrix<-cibersort_matrix[,-c(16:19)]
 cibersort_molten_matrix<-cibersort_matrix
 colnames(cibersort_molten_matrix)[1]<-"sample_id"
 cibersort_molten_matrix <- reshape2::melt(cibersort_molten_matrix, id.vars = "sample_id")
 
 #karyotype
-karyo<-read.delim("Data/beataml_ELN2022_karyotype_renamed.tsv",row.names = "ELN2022_feature")
 karyo<-t(karyo)
 karyo <- data.frame(sample_id = rownames(karyo), karyo)
 molten_karyo_matrix <- reshape2::melt(karyo, id.vars = "sample_id")
@@ -58,7 +65,6 @@ molten_karyo_matrix$rna_id <- als_clin$dbgap_rnaseq_sample[match(molten_karyo_ma
 molten_karyo_matrix<-molten_karyo_matrix[!is.na(molten_karyo_matrix$rna_id),]
 
 #prognostic markers
-
 samples_to_see<-c("Favorable", "Adverse","Intermediate","FavorableOrIntermediate","IntermediateOrAdverse")
 initial_diagnosis_als_clin<-als_clin[als_clin$diseaseStageAtSpecimenCollection %in% c("Initial Diagnosis"),]
 
@@ -126,7 +132,6 @@ merged_data$vitalStatus <- ifelse(merged_data$vitalStatus == "Dead", 1,
 merged_data<-na.omit(merged_data)
 merged_data$TimeSurv<-as.numeric(as.character(merged_data$TimeSurv))
 
-save(merged_data, file = "./features_data.RData")
 
 sample_IDs<-merged_data$RNAseqID
 sample_ELNs<-merged_data$ELN2017
@@ -134,7 +139,6 @@ sample_ELNs<-merged_data$ELN2017
 merged_data$RNAseqID <- NULL
 
 trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.7, list = FALSE)
-save(trainIndex, file = "./partition.RData")
 
 train_data <- merged_data[trainIndex,]
 test_data <- merged_data[-trainIndex,]
@@ -225,5 +229,8 @@ feature_importance_freq <- feature_importance_counts / n_permutations
 # Select features with frequency less than or equal to 5% (i.e., those that are consistently important)
 selected_features <- names(feature_importance_freq[feature_importance_freq <= 0.05])
 
-save(selected_features, feature_importance_freq, selected.vars, varsel_result, file = "./features.RData")
+#####save data#####
 
+save(selected_features, feature_importance_freq, selected.vars, varsel_result, file = "./results/feature_results/features.RData")
+save(merged_data, file = "./results/feature_results/features_data.RData")
+save(trainIndex, file = "./results/feature_results/partition.RData")
