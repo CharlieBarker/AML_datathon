@@ -133,7 +133,9 @@ sample_ELNs<-merged_data$ELN2017
 
 merged_data$RNAseqID <- NULL
 
-trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.8, list = FALSE)
+trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.7, list = FALSE)
+save(trainIndex, file = "./partition.RData")
+
 train_data <- merged_data[trainIndex,]
 test_data <- merged_data[-trainIndex,]
 test_SampleIDs<-sample_IDs[-trainIndex]

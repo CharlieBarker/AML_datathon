@@ -3,10 +3,13 @@ library(caret)  # For grid search
 library(mltools)
 library(MLmetrics)
 library(pbapply)
+library(randomForestSRC)
+library(dplyr)
 
 setwd("~/Desktop/CRUK_AML_PAPER")
 load(file = "./features.RData")
 load(file = "./features_data.RData")
+load(file = "./partition.RData")
 
 set.seed(123)  # Set seed for reproducibility
 
@@ -15,7 +18,6 @@ sample_ELNs<-merged_data$ELN2017
 
 merged_data$RNAseqID <- NULL
 
-trainIndex <- createDataPartition(merged_data$ELN2017, p = 0.7, list = FALSE)
 train_data <- merged_data[trainIndex,]
 test_data <- merged_data[-trainIndex,]
 test_SampleIDs<-sample_IDs[-trainIndex]
@@ -139,4 +141,5 @@ test_proximity_clusters<-data_to_plot$kmeans_cluster_ordered[-trainIndex]
 
 data_to_plot$ELN2017 <- sample_ELNs
 write.csv(x = data_to_plot, file = './Results/full_patient_info.csv')
+save(o, file = "./model.RData")
 

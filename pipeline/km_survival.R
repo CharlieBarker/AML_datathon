@@ -7,6 +7,51 @@ library(pROC)
 library(ggplot2)
 library(dplyr)
 
+setwd("~/Desktop/CRUK_AML_PAPER")
+load(file = "./features.RData")
+load(file = "./features_data.RData")
+load(file = "./partition.RData")
+load(file = "./model.RData")
+
+data_to_plot <- read.csv('./Results/full_patient_info.csv')
+
+# Check if trainIndex exists
+if (exists("trainIndex")) {
+  test_proximity_clusters <- data_to_plot$kmeans_cluster_ordered[-trainIndex]
+} else {
+  stop("trainIndex is not defined.")
+}
+
+set.seed(123)  # Set seed for reproducibility
+
+sample_IDs<-merged_data$RNAseqID
+sample_ELNs<-merged_data$ELN2017
+
+merged_data$RNAseqID <- NULL
+
+train_data <- merged_data[trainIndex,]
+test_data <- merged_data[-trainIndex,]
+test_SampleIDs<-sample_IDs[-trainIndex]
+trainSampleIDs<-sample_IDs[trainIndex]
+
+test_SampleELNs<-sample_ELNs[-trainIndex]
+train_SampleELNs<-sample_ELNs[trainIndex]
+
+prep_data<-function(full_feature_data, feature_set){
+  colnames(full_feature_data)<-gsub("-", "_", colnames(full_feature_data))
+  colnames(full_feature_data)<-gsub(";", ".", colnames(full_feature_data))
+  feature_set<-gsub("-", "_", feature_set)
+  feature_set<-gsub(";", ".", feature_set)
+  
+  return(full_feature_data[,c(feature_set, 'TimeSurv', 'vitalStatus')])
+}
+
+features_to_select<-selected.vars
+train_selected_features <- prep_data(train_data, features_to_select)
+test_selected_features <- prep_data(test_data, features_to_select)
+all_selected_features <- prep_data(merged_data, features_to_select)
+
+
 # Define time points
 time_points <- c( 365)  # in days
 colors_model <- c("blue", "red", "green")
