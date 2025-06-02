@@ -18,6 +18,7 @@ load(file = "data/prelim_rfsrc.RData")
 #clinical-readings
 als_clin <- readRDS("data/Clin_RNA.rds")
 clin.data<-readxl::read_excel("data/beataml_wv1to4_clinical.xlsx")
+
 #transcriptional-signatures
 sample_acts_pathway<-readRDS("results/patient_pathway_activities.rds")
 sample_acts_tf<-readRDS("results/patient_tf_activities.rds")
@@ -92,6 +93,7 @@ signature_info <- rbind(data.frame(statistic="NULL", source=sample_pathway_molte
                                    p_value="NULL", feature_type = "karyo")
 )
 #signature_info$score <- as.character(signature_info$score)
+#signature_info<-signature_info[signature_info$feature_type == 'transcriptional-signatures',]
 
 # Convert only mutation scores to factor
 signature_info$score[signature_info$feature_type == "mutations"] <- 

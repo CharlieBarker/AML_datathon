@@ -135,6 +135,8 @@ test_proximity_clusters<-data_to_plot$kmeans_cluster_ordered[-trainIndex]
 
 data_to_plot$ELN2017 <- sample_ELNs
 
+#####save data#####
+
 write.csv(x = data_to_plot, file = './results/stratification/full_patient_info.csv')
 save(o, file = "./results/model.RData")
 
